@@ -2,7 +2,7 @@
 
 <html>
 <head>
-	<title>Instagram Hashtags</title>	
+	<title>Assignment 1</title>	
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
@@ -18,34 +18,7 @@
 </head>
 
 <body>
-      <div class="container">
-      	<h1>Hashtags and pictures that people like</h1>
-        <div class="row">
-            {{#each images}}
-              <div class="col-xs-4" class="images" style="text-align:center">
-                <img src="{{image}}" class="img-responsive" class="img hashtag-img"><br>
-                <h4>#{{hashtag}}</h4>
-                <form id="deleteHashTag" role="form" method="post" action="/delete">
-                  <input type="hidden" name="id" value="{{_id}}">
-                  <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-              </div>
-            {{/each}}
-          </div>
-      </div>
-      <br>
-      
-      <div class="container">
-        <h1>What hashtag would you like to see?</h1>
 
-        <form id="viewHashTag" role="form" method="post" action="/hashtag">
-            <h3>View Hashtag</h3>
-            <div class="form-group">
-              <input type="text" class="form-control" id="hashtag" placeholder="hashtag" name="hashtag">
-            </div>
-            <input type="submit" id="submitBtn" class="btn btn-default" value="View Hashtag"></input>
-        </form>
-    </div>
     <script src="https://code.jquery.com/jquery.js"></script>
     <script src="js/jquery.validate.min.js"></script>
     <script src="js/additional-methods.min.js"></script>

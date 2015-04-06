@@ -1,20 +1,22 @@
 {
   "name": "mywebapp",
   "version": "0.0.1",
-  "author": "Chu Shao",
+  "author": "Brian Soe",
+  "description": "Assignment 1 for COGS 121",
   "scripts": {
     "start": "node app.js"
   },
   "dependencies": {
-    "express": "3.x",
-    "express3-handlebars": "*",
+    "express": "4.x",
+    "express-handlebars": "1.x",
     "mongodb": "*",
     "mongoose": "*",
     "passport": "*",
     "passport-facebook": "*",
     "passport-twitter": "*",
     "dotenv": "*",
-    "instagram-node-lib": "*"
+    "instagram-node-lib": "*",
+    "body-parser": "*"
   },
   "engines": {
     "node": "0.10.x"
