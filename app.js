@@ -10,7 +10,11 @@ var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var dotenv = require('dotenv');
 var Instagram = require('instagram-node-lib');
+var mongoose = require('mongoose');
 var app = express();
+
+//local dependencies
+var models = require('./models');
 
 //client id and client secret here, taken from .env
 dotenv.load();
@@ -18,9 +22,16 @@ var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
 var INSTAGRAM_ACCESS_TOKEN = "";
-
 Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
 Instagram.set('client_secret', INSTAGRAM_CLIENT_SECRET);
+
+//connect to database
+mongoose.connect(process.env.MONGODB_CONNECTION_URL);
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function (callback) {
+  console.log("Database connected succesfully.");
+});
 
 // Passport session setup.
 //   To support persistent login sessions, Passport needs to be able to
@@ -49,13 +60,23 @@ passport.use(new InstagramStrategy({
   },
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
-    INSTAGRAM_ACCESS_TOKEN = accessToken;
-    process.nextTick(function () {
-      // To keep the example simple, the user's Instagram profile is returned to
-      // represent the logged-in user.  In a typical application, you would want
-      // to associate the Instagram account with a user record in your database,
-      // and return that user instead.
-      return done(null, profile);
+    models.User.findOrCreate({
+      "name": profile.username,
+      "id": profile.id,
+      "access_token": accessToken 
+    }, function(err, user, created) {
+      
+      // created will be true here
+      models.User.findOrCreate({}, function(err, user, created) {
+        // created will be false here
+        process.nextTick(function () {
+          // To keep the example simple, the user's Instagram profile is returned to
+          // represent the logged-in user.  In a typical application, you would want
+          // to associate the Instagram account with a user record in your database,
+          // and return that user instead.
+          return done(null, profile);
+        });
+      })
     });
   }
 ));
@@ -99,28 +120,32 @@ app.get('/login', function(req, res){
 });
 
 app.get('/account', ensureAuthenticated, function(req, res){
-  Instagram.users.liked_by_self({
-    access_token: INSTAGRAM_ACCESS_TOKEN,
-    complete: function(data) {
-      console.log(data);
-      //create an image array
-      imageArr = [];
-      //Map will iterate through the returned data obj
-      data.map(function(item) {
-        //create temporary json object
-        tempJSON = {};
-        tempJSON.url = item.images.low_resolution.url;
-        //insert json object into image array
-        imageArr.push(tempJSON);
-      });
-      console.log(imageArr);
-      //turn image array and the hashtag name into data to return
-      //return data to the webpage
-      res.render('account', { user: req.user, photos: imageArr });
+  var query  = models.User.where({ name: req.user.username });
+  query.findOne(function (err, user) {
+    if (err) return handleError(err);
+    if (user) {
+      // doc may be null if no document matched
+      Instagram.users.liked_by_self({
+        access_token: user.access_token,
+        complete: function(data) {
+          console.log(data);
+          //create an image array
+          imageArr = [];
+          //Map will iterate through the returned data obj
+          data.map(function(item) {
+            //create temporary json object
+            tempJSON = {};
+            tempJSON.url = item.images.low_resolution.url;
+            //insert json object into image array
+            imageArr.push(tempJSON);
+          });
+          res.render('account', {user: req.user, photos: imageArr});
+        }
+      }); 
     }
-  }); 
+  });
 });
-
+  
 // GET /auth/instagram
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  The first step in Instagram authentication will involve
@@ -139,7 +164,7 @@ app.get('/auth/instagram',
 //   login page.  Otherwise, the primary route function function will be called,
 //   which, in this example, will redirect the user to the home page.
 app.get('/auth/instagram/callback', 
-  passport.authenticate('instagram', { failureRedirect: '/login' }),
+  passport.authenticate('instagram', { failureRedirect: '/login'}),
   function(req, res) {
     res.redirect('/account');
   });
