@@ -9,6 +9,7 @@ var bodyParser = require('body-parser');
 var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var dotenv = require('dotenv');
+var Instagram = require('instagram-node-lib');
 var app = express();
 
 //client id and client secret here, taken from .env
@@ -16,6 +17,10 @@ dotenv.load();
 var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
+var INSTAGRAM_ACCESS_TOKEN = "";
+
+Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
+Instagram.set('client_secret', INSTAGRAM_CLIENT_SECRET);
 
 // Passport session setup.
 //   To support persistent login sessions, Passport needs to be able to
@@ -44,6 +49,7 @@ passport.use(new InstagramStrategy({
   },
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
+    INSTAGRAM_ACCESS_TOKEN = accessToken;
     process.nextTick(function () {
       // To keep the example simple, the user's Instagram profile is returned to
       // represent the logged-in user.  In a typical application, you would want
@@ -77,8 +83,10 @@ app.set('port', process.env.PORT || 3000);
 //   the request will proceed.  Otherwise, the user will be redirected to the
 //   login page.
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/login')
+  if (req.isAuthenticated()) { 
+    return next(); 
+  }
+  res.redirect('/login');
 }
 
 //routes
@@ -91,7 +99,26 @@ app.get('/login', function(req, res){
 });
 
 app.get('/account', ensureAuthenticated, function(req, res){
-  res.render('account', { user: req.user });
+  Instagram.users.liked_by_self({
+    access_token: INSTAGRAM_ACCESS_TOKEN,
+    complete: function(data) {
+      console.log(data);
+      //create an image array
+      imageArr = [];
+      //Map will iterate through the returned data obj
+      data.map(function(item) {
+        //create temporary json object
+        tempJSON = {};
+        tempJSON.url = item.images.low_resolution.url;
+        //insert json object into image array
+        imageArr.push(tempJSON);
+      });
+      console.log(imageArr);
+      //turn image array and the hashtag name into data to return
+      //return data to the webpage
+      res.render('account', { user: req.user, photos: imageArr });
+    }
+  }); 
 });
 
 // GET /auth/instagram
