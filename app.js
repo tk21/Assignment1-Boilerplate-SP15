@@ -132,16 +132,13 @@ app.get('/photos', ensureAuthenticated, function(req, res){
       Instagram.users.liked_by_self({
         access_token: user.access_token,
         complete: function(data) {
-          console.log(data);
-          //create an image array
-          imageArr = [];
           //Map will iterate through the returned data obj
-          data.map(function(item) {
+          var imageArr = data.map(function(item) {
             //create temporary json object
             tempJSON = {};
             tempJSON.url = item.images.low_resolution.url;
             //insert json object into image array
-            imageArr.push(tempJSON);
+            return tempJSON;
           });
           res.render('photos', {photos: imageArr});
         }
