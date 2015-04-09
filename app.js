@@ -120,6 +120,10 @@ app.get('/login', function(req, res){
 });
 
 app.get('/account', ensureAuthenticated, function(req, res){
+  res.render('account', {user: req.user});
+});
+
+app.get('/photos', ensureAuthenticated, function(req, res){
   var query  = models.User.where({ name: req.user.username });
   query.findOne(function (err, user) {
     if (err) return handleError(err);
@@ -139,13 +143,14 @@ app.get('/account', ensureAuthenticated, function(req, res){
             //insert json object into image array
             imageArr.push(tempJSON);
           });
-          res.render('account', {user: req.user, photos: imageArr});
+          res.render('photos', {photos: imageArr});
         }
       }); 
     }
   });
 });
-  
+
+
 // GET /auth/instagram
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  The first step in Instagram authentication will involve
