@@ -1,7 +1,5 @@
-Instagram Example
+COGS 121 Assignment 1 - Spring 2015
 ===========
 
-Discussion 1:
-
-Instagram example for COGS 121
-Every commit will provide a step by step introduction to creating a web application overview.
+This is the starter code for an application that authenticates with Instagram via the Oauth protocol and Passport.
+Instructions are in the wiki.
