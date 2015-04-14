@@ -129,7 +129,7 @@ app.get('/photos', ensureAuthenticated, function(req, res){
     if (err) return handleError(err);
     if (user) {
       // doc may be null if no document matched
-      Instagram.users.liked_by_self({
+      Instagram.users.self({
         access_token: user.access_token,
         complete: function(data) {
           //Map will iterate through the returned data obj
@@ -137,12 +137,26 @@ app.get('/photos', ensureAuthenticated, function(req, res){
             //create temporary json object
             tempJSON = {};
             tempJSON.url = item.images.low_resolution.url;
+            tempJSON.caption = item.caption;
             //insert json object into image array
             return tempJSON;
           });
           res.render('photos', {photos: imageArr});
         }
-      }); 
+      });
+
+      // Instagram.media.info({
+      //   complete: function(data) {
+      //     var captionArr = data.map(function(item) {
+      //       captionJSON = {};
+      //       captionJSON.caption = item.caption;
+      //       return captionJSON; 
+      //     });
+      //     res.render('photos2', {captions: captionArr});
+          
+      //   }
+      // });
+
     }
   });
 });
@@ -179,3 +193,9 @@ app.get('/logout', function(req, res){
 http.createServer(app).listen(app.get('port'), function() {
     console.log('Express server listening on port ' + app.get('port'));
 });
+
+
+app.post('/login', passport.authenticate('local', { successRedirect: '/',
+                                                    failureRedirect: '/login'}));
+
+

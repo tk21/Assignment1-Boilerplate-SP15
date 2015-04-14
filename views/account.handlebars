@@ -1,4 +1,19 @@
-hello account
-<p>ID: {{user.id}}</p>
-<p>Username: {{user.username}}</p>
-<p>Name:{{user.displayName}}</p>
+<!doctype html>
+<html>
+
+<!-- STYLESHEETS -->
+<link rel="stylesheet" type="text/css" href="css/account.css">
+
+
+<div class="account-info" id="account-div">
+    <p>ID: {{user.id}}</p>
+    <p>Username: {{user.username}}</p>
+    <p>Name:{{user.displayName}}</p>
+</div>
+
+<div class="btn-div">
+    <a class="btn" href="/photos">Take me to my feed</a>
+    <a class="btn" href="/logout">Log Out</a>
+</div>
+
+</html>
