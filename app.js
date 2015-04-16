@@ -2,6 +2,7 @@
 var express = require('express');
 var passport = require('passport');
 var InstagramStrategy = require('passport-instagram').Strategy;
+var FacebookStrategy = require('passport-facebook').Strategy;
 var http = require('http');
 var path = require('path');
 var handlebars = require('express-handlebars');
@@ -10,6 +11,7 @@ var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var dotenv = require('dotenv');
 var Instagram = require('instagram-node-lib');
+var Facebook = require('fbgraph');
 var mongoose = require('mongoose');
 var app = express();
 //testing
@@ -22,9 +24,14 @@ dotenv.load();
 var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
+var FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
+var FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
+var FACEBOOK_CALLBACK_URL = process.env.FACEBOOK_CALLBACK_URL;
 var INSTAGRAM_ACCESS_TOKEN = "";
 Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
 Instagram.set('client_secret', INSTAGRAM_CLIENT_SECRET);
+//Facebook.set('app_id', FACEBOOK_APP_ID);
+//Facebook.set('app_secret', FACEBOOK_APP_SECRET);
 
 //connect to database
 mongoose.connect(process.env.MONGODB_CONNECTION_URL);
@@ -36,7 +43,7 @@ db.once('open', function (callback) {
 
 // Passport session setup.
 //   To support persistent login sessions, Passport needs to be able to
-//   serialize users into and deserialize users out of the session.  Typically,
+//   serialize users into ablend deserialize users out of the session.  Typically,
 //   this will be as simple as storing the user ID when serializing, and finding
 //   the user by ID when deserializing.  However, since this example does not
 //   have a database of user records, the complete Instagram profile is
@@ -81,6 +88,35 @@ passport.use(new InstagramStrategy({
     });
   }
 ));
+
+passport.use(new FacebookStrategy({
+    clientID: FACEBOOK_APP_ID,
+    clientSecret: FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/callback"
+  },
+  function(accessToken, refreshToken, profile, done) {
+    // asynchronous verification, for effect...
+    models.User.findOrCreate({
+      "name": profile.username,
+      "id": profile.id,
+      "access_token": accessToken 
+    }, function(err, user, created) {
+      
+      // created will be true here
+      models.User.findOrCreate({}, function(err, user, created) {
+        // created will be false here
+        process.nextTick(function () {
+          // To keep the example simple, the user's Instagram profile is returned to
+          // represent the logged-in user.  In a typical application, you would want
+          // to associate the Instagram account with a user record in your database,
+          // and return that user instead.
+          return done(null, profile);
+        });
+      })
+    });
+  }
+));
+
 
 //Configures the Template engine
 app.engine('handlebars', handlebars({defaultLayout: 'layout'}));
@@ -175,6 +211,39 @@ app.get('/auth/instagram',
     // function will not be called.
   });
 
+app.get('/auth/facebook', function(req, res) {
+
+  // we don't have a code yet
+  // so we'll redirect to the oauth dialog
+  if (!req.query.code) {
+    var authUrl = Facebook.getOauthUrl({
+        "client_id":     FACEBOOK_APP_ID
+      , "redirect_uri":  FACEBOOK_CALLBACK_URL
+    });
+
+    if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
+      res.redirect(authUrl);
+    } else {  //req.query.error == 'access_denied'
+      res.send('access denied');
+    }
+    return;
+  }
+    Facebook.authorize({
+      "client_id":      FACEBOOK_APP_ID
+    , "redirect_uri":   FACEBOOK_CALLBACK_URL
+    , "client_secret":  FACEBOOK_APP_SECRET
+    , "code":           req.query.code
+  }, function (err, facebookRes) {
+    res.redirect('/account');
+  });
+
+
+});
+
+app.get('/account', function(req, res) {
+  res.render("account", { title: "Logged In" });
+});
+
 // GET /auth/instagram/callback
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  If authentication fails, the user will be redirected back to the
@@ -182,6 +251,12 @@ app.get('/auth/instagram',
 //   which, in this example, will redirect the user to the home page.
 app.get('/auth/instagram/callback', 
   passport.authenticate('instagram', { failureRedirect: '/login'}),
+  function(req, res) {
+    res.redirect('/account');
+  });
+
+app.get('/auth/facebook/callback', 
+  passport.authenticate('facebook', { failureRedirect: '/login'}),
   function(req, res) {
     res.redirect('/account');
   });
