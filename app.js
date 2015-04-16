@@ -24,14 +24,14 @@ dotenv.load();
 var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
-var FACEBOOK_CLIENT_ID = process.env.FACEBOOK_CLIENT_ID;
-var FACEBOOK_CLIENT_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
+var FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
+var FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
 var FACEBOOK_CALLBACK_URL = process.env.FACEBOOK_CALLBACK_URL;
 var INSTAGRAM_ACCESS_TOKEN = "";
 Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
 Instagram.set('client_secret', INSTAGRAM_CLIENT_SECRET);
-Facebook.set('client_id', FACEBOOK_CLIENT_ID);
-Facebook.set('client_secret', FACEBOOK_CLIENT_SECRET);
+//Facebook.set('app_id', FACEBOOK_APP_ID);
+//Facebook.set('app_secret', FACEBOOK_APP_SECRET);
 
 //connect to database
 mongoose.connect(process.env.MONGODB_CONNECTION_URL);
@@ -90,9 +90,9 @@ passport.use(new InstagramStrategy({
 ));
 
 passport.use(new FacebookStrategy({
-    clientID: FACEBOOK_CLIENT_ID,
-    clientSecret: FACEBOOK_CLIENT_SECRET,
-    callbackURL: FACEBOOK_CALLBACK_URL
+    clientID: FACEBOOK_APP_ID,
+    clientSecret: FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/callback"
   },
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
@@ -211,6 +211,39 @@ app.get('/auth/instagram',
     // function will not be called.
   });
 
+app.get('/auth/facebook', function(req, res) {
+
+  // we don't have a code yet
+  // so we'll redirect to the oauth dialog
+  if (!req.query.code) {
+    var authUrl = Facebook.getOauthUrl({
+        "client_id":     FACEBOOK_APP_ID
+      , "redirect_uri":  FACEBOOK_CALLBACK_URL
+    });
+
+    if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
+      res.redirect(authUrl);
+    } else {  //req.query.error == 'access_denied'
+      res.send('access denied');
+    }
+    return;
+  }
+    Facebook.authorize({
+      "client_id":      FACEBOOK_APP_ID
+    , "redirect_uri":   FACEBOOK_CALLBACK_URL
+    , "client_secret":  FACEBOOK_APP_SECRET
+    , "code":           req.query.code
+  }, function (err, facebookRes) {
+    res.redirect('/account');
+  });
+
+
+});
+
+app.get('/account', function(req, res) {
+  res.render("account", { title: "Logged In" });
+});
+
 // GET /auth/instagram/callback
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  If authentication fails, the user will be redirected back to the
@@ -218,6 +251,12 @@ app.get('/auth/instagram',
 //   which, in this example, will redirect the user to the home page.
 app.get('/auth/instagram/callback', 
   passport.authenticate('instagram', { failureRedirect: '/login'}),
+  function(req, res) {
+    res.redirect('/account');
+  });
+
+app.get('/auth/facebook/callback', 
+  passport.authenticate('facebook', { failureRedirect: '/login'}),
   function(req, res) {
     res.redirect('/account');
   });
