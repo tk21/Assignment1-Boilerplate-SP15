@@ -90,6 +90,7 @@ passport.use(new InstagramStrategy({
   }
 ));
 
+
 passport.use(new FacebookStrategy({
     clientID: FACEBOOK_APP_ID,
     clientSecret: FACEBOOK_APP_SECRET,
@@ -102,7 +103,8 @@ passport.use(new FacebookStrategy({
       "id": profile.id,
       "access_token": accessToken 
     }, function(err, user, created) {
-      
+      Facebook.setAccessToken(accessToken);
+      console.log(accessToken);
       // created will be true here
       models.User.findOrCreate({}, function(err, user, created) {
 
@@ -121,7 +123,7 @@ passport.use(new FacebookStrategy({
 ));
 
 
-Facebook.setAccessToken(models.User.access_token);
+//Facebook.setAccessToken(models.User.access_token);
 Facebook.get('likes', {limit: 2, access_token: "foobar"}, function(err, res) {
   if(res.paging && res.paging.next) {
     Facebook.get(res.paging.next, function(err, res) {
@@ -222,9 +224,6 @@ app.get('/auth/instagram',
   });
 
 app.get('/auth/facebook', function(req, res) {
-
-  // we don't have a code yet
-  // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = Facebook.getOauthUrl({
         "client_id":     FACEBOOK_APP_ID
@@ -266,7 +265,9 @@ app.get('/auth/instagram/callback',
 });
 
 app.get('/auth/facebook/callback', 
-  passport.authenticate('facebook', { failureRedirect: '/login'}),
+  passport.authenticate('facebook', 
+    {scope: ['public_profile','user_photos', 'read_stream'], 
+    failureRedirect: '/login'}), 
   function(req, res) {
     res.redirect('/fbaccount');
 });
