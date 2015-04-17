@@ -105,8 +105,10 @@ passport.use(new FacebookStrategy({
       
       // created will be true here
       models.User.findOrCreate({}, function(err, user, created) {
+
         // created will be false here
         process.nextTick(function () {
+          //Facebook.setAccessToken(models.User.access_token);
           // To keep the example simple, the user's Instagram profile is returned to
           // represent the logged-in user.  In a typical application, you would want
           // to associate the Instagram account with a user record in your database,
@@ -118,6 +120,8 @@ passport.use(new FacebookStrategy({
   }
 ));
 
+
+Facebook.setAccessToken(models.User.access_token);
 Facebook.get('likes', {limit: 2, access_token: "foobar"}, function(err, res) {
   if(res.paging && res.paging.next) {
     Facebook.get(res.paging.next, function(err, res) {
@@ -125,6 +129,12 @@ Facebook.get('likes', {limit: 2, access_token: "foobar"}, function(err, res) {
     });
   }
 });
+
+Facebook.get("/me?fields=feed", function(err, reply) { 
+  console.log(reply);
+});
+
+
 
 //Configures the Template engine
 app.engine('handlebars', handlebars({defaultLayout: 'layout'}));
@@ -193,18 +203,6 @@ app.get('/photos', ensureAuthenticated, function(req, res){
           res.render('photos', {photos: imageArr});
         }
       });
-
-      // Instagram.media.info({
-      //   complete: function(data) {
-      //     var captionArr = data.map(function(item) {
-      //       captionJSON = {};
-      //       captionJSON.caption = item.caption;
-      //       return captionJSON; 
-      //     });
-      //     res.render('photos2', {captions: captionArr});
-          
-      //   }
-      // });
 
     }
   });
