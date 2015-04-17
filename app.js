@@ -1,3 +1,4 @@
+
 //dependencies for each module used
 var express = require('express');
 var passport = require('passport');
@@ -24,8 +25,8 @@ dotenv.load();
 var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
-var FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
-var FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
+var FACEBOOK_APP_ID = process.env.FACEBOOK_CLIENT_ID;
+var FACEBOOK_APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
 var FACEBOOK_CALLBACK_URL = process.env.FACEBOOK_CALLBACK_URL;
 var INSTAGRAM_ACCESS_TOKEN = "";
 Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
@@ -117,6 +118,13 @@ passport.use(new FacebookStrategy({
   }
 ));
 
+Facebook.get('likes', {limit: 2, access_token: "foobar"}, function(err, res) {
+  if(res.paging && res.paging.next) {
+    Facebook.get(res.paging.next, function(err, res) {
+      // page 2
+    });
+  }
+});
 
 //Configures the Template engine
 app.engine('handlebars', handlebars({defaultLayout: 'layout'}));
@@ -158,6 +166,10 @@ app.get('/login', function(req, res){
 
 app.get('/account', ensureAuthenticated, function(req, res){
   res.render('account', {user: req.user});
+});
+
+app.get('/fbaccount', ensureAuthenticated, function(req, res){
+  res.render('fbaccount', {user: req.user});
 });
 
 app.get('/photos', ensureAuthenticated, function(req, res){
@@ -253,13 +265,13 @@ app.get('/auth/instagram/callback',
   passport.authenticate('instagram', { failureRedirect: '/login'}),
   function(req, res) {
     res.redirect('/account');
-  });
+});
 
 app.get('/auth/facebook/callback', 
   passport.authenticate('facebook', { failureRedirect: '/login'}),
   function(req, res) {
-    res.redirect('/account');
-  });
+    res.redirect('/fbaccount');
+});
 
 app.get('/logout', function(req, res){
   req.logout();
