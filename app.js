@@ -1,4 +1,3 @@
-
 //dependencies for each module used
 var express = require('express');
 var passport = require('passport');
@@ -15,7 +14,6 @@ var Instagram = require('instagram-node-lib');
 var Facebook = require('fbgraph');
 var mongoose = require('mongoose');
 var app = express();
-//testing
 
 //local dependencies
 var models = require('./models');
@@ -25,14 +23,12 @@ dotenv.load();
 var INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
 var INSTAGRAM_CLIENT_SECRET = process.env.INSTAGRAM_CLIENT_SECRET;
 var INSTAGRAM_CALLBACK_URL = process.env.INSTAGRAM_CALLBACK_URL;
-var FACEBOOK_APP_ID = process.env.FACEBOOK_CLIENT_ID;
-var FACEBOOK_APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
+var FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
+var FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
 var FACEBOOK_CALLBACK_URL = process.env.FACEBOOK_CALLBACK_URL;
 var INSTAGRAM_ACCESS_TOKEN = "";
 Instagram.set('client_id', INSTAGRAM_CLIENT_ID);
 Instagram.set('client_secret', INSTAGRAM_CLIENT_SECRET);
-//Facebook.set('app_id', FACEBOOK_APP_ID);
-//Facebook.set('app_secret', FACEBOOK_APP_SECRET);
 
 //connect to database
 mongoose.connect(process.env.MONGODB_CONNECTION_URL);
@@ -70,9 +66,10 @@ passport.use(new InstagramStrategy({
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
     models.User.findOrCreate({
-      "name": profile.username,
+      "name": profile.displayName,
       "id": profile.id,
-      "access_token": accessToken 
+      "access_token": accessToken,
+      "provider" : profile.provider
     }, function(err, user, created) {
       
       // created will be true here
@@ -90,27 +87,24 @@ passport.use(new InstagramStrategy({
   }
 ));
 
-
 passport.use(new FacebookStrategy({
     clientID: FACEBOOK_APP_ID,
     clientSecret: FACEBOOK_APP_SECRET,
-    callbackURL: "http://localhost:3000/auth/facebook/callback"
+    callbackURL: FACEBOOK_CALLBACK_URL
   },
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
     models.User.findOrCreate({
-      "name": profile.username,
+      "name": profile.displayName,
       "id": profile.id,
-      "access_token": accessToken 
+      "access_token": accessToken ,
+      "provider" : profile.provider
     }, function(err, user, created) {
-      Facebook.setAccessToken(accessToken);
-      console.log(accessToken);
+      
       // created will be true here
       models.User.findOrCreate({}, function(err, user, created) {
-
         // created will be false here
         process.nextTick(function () {
-          //Facebook.setAccessToken(models.User.access_token);
           // To keep the example simple, the user's Instagram profile is returned to
           // represent the logged-in user.  In a typical application, you would want
           // to associate the Instagram account with a user record in your database,
@@ -121,22 +115,6 @@ passport.use(new FacebookStrategy({
     });
   }
 ));
-
-
-//Facebook.setAccessToken(models.User.access_token);
-Facebook.get('likes', {limit: 2, access_token: "foobar"}, function(err, res) {
-  if(res.paging && res.paging.next) {
-    Facebook.get(res.paging.next, function(err, res) {
-      // page 2
-    });
-  }
-});
-
-Facebook.get("/me?fields=feed", function(err, reply) { 
-  console.log(reply);
-});
-
-
 
 //Configures the Template engine
 app.engine('handlebars', handlebars({defaultLayout: 'layout'}));
@@ -162,10 +140,26 @@ app.set('port', process.env.PORT || 3000);
 //   login page.
 function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) { 
+
     return next(); 
   }
   res.redirect('/login');
 }
+
+/*function ensureAuthenticatedInstagram(req, res, next) {
+  if (req.isAuthenticated() || req.user.instagramID) { 
+
+    return next(); 
+  }
+  res.redirect('/login');
+}
+
+function ensureAuthenticatedFacebook(req, res, next) {
+  if (req.isAuthenticated() || req.user.facebookID) { 
+    return next(); 
+  }
+  res.redirect('/login');
+}*/
 
 //routes
 app.get('/', function(req, res){
@@ -176,19 +170,16 @@ app.get('/login', function(req, res){
   res.render('login', { user: req.user });
 });
 
-app.get('/account', ensureAuthenticated, function(req, res){
-  res.render('account', {user: req.user});
-});
-
-app.get('/fbaccount', ensureAuthenticated, function(req, res){
-  res.render('fbaccount', {user: req.user});
-});
+/*app.get('/instagramAccount', ensureAuthenticatedInstagram, function(req, res){
+  res.render('instagramAccount', {user: req.user});
+});*/
 
 app.get('/photos', ensureAuthenticated, function(req, res){
   var query  = models.User.where({ name: req.user.username });
   query.findOne(function (err, user) {
     if (err) return handleError(err);
-    if (user) {
+    if (req.user.provider == 'instagram') {
+      console.log("instagram!");
       // doc may be null if no document matched
       Instagram.users.self({
         access_token: user.access_token,
@@ -202,11 +193,39 @@ app.get('/photos', ensureAuthenticated, function(req, res){
             //insert json object into image array
             return tempJSON;
           });
-          res.render('photos', {photos: imageArr});
+          res.render('instagramAccount', {photos: imageArr, name: user.name});
         }
       });
-
     }
+
+      // Instagram.media.info({
+      //   complete: function(data) {
+      //     var captionArr = data.map(function(item) {
+      //       captionJSON = {};
+      //       captionJSON.caption = item.caption;
+      //       return captionJSON; 
+      //     });
+      //     res.render('photos2', {captions: captionArr});
+          
+      //   }
+      // });
+
+    else if(req.user.provider == 'facebook') {
+      console.log("facebook!");
+      Facebook.get('/' + user.id + '/photos?type=uploaded', function(err, response) {
+      //response.paging.limit = 50;
+      var imageArr = response.data.map(function(item) {
+        item.width = 1050;
+        var tempJSON = {};
+        tempJSON.url = item.source;
+        tempJSON.caption = item.name;
+        return tempJSON;
+        });
+        res.render('instagramAccount', {photos: imageArr, user: req.user});
+      });
+    }
+    else
+      console.log("This shouldn't be happening!");
   });
 });
 
@@ -224,6 +243,9 @@ app.get('/auth/instagram',
   });
 
 app.get('/auth/facebook', function(req, res) {
+
+  // we don't have a code yet
+  // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = Facebook.getOauthUrl({
         "client_id":     FACEBOOK_APP_ID
@@ -243,14 +265,18 @@ app.get('/auth/facebook', function(req, res) {
     , "client_secret":  FACEBOOK_APP_SECRET
     , "code":           req.query.code
   }, function (err, facebookRes) {
-    res.redirect('/account');
+    res.redirect('/photos');
   });
 
 
 });
 
-app.get('/account', function(req, res) {
-  res.render("account", { title: "Logged In" });
+app.get('/instagramAccount', function(req, res) {
+  res.render('instagramAccount', { title: "Logged In" });
+});
+
+app.get('/facebookAccount', function(req, res) {
+  res.render('facebookAccount', { title: "Logged In" });
 });
 
 // GET /auth/instagram/callback
@@ -261,16 +287,14 @@ app.get('/account', function(req, res) {
 app.get('/auth/instagram/callback', 
   passport.authenticate('instagram', { failureRedirect: '/login'}),
   function(req, res) {
-    res.redirect('/account');
-});
+    res.redirect('/photos');
+  });
 
 app.get('/auth/facebook/callback', 
-  passport.authenticate('facebook', 
-    {scope: ['public_profile','user_photos', 'read_stream'], 
-    failureRedirect: '/login'}), 
+  passport.authenticate('facebook', { failureRedirect: '/login'}),
   function(req, res) {
-    res.redirect('/fbaccount');
-});
+    res.redirect('/photos');
+  });
 
 app.get('/logout', function(req, res){
   req.logout();
@@ -284,5 +308,3 @@ http.createServer(app).listen(app.get('port'), function() {
 
 app.post('/login', passport.authenticate('local', { successRedirect: '/',
                                                     failureRedirect: '/login'}));
-
-
