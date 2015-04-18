@@ -109,6 +109,7 @@ passport.use(new FacebookStrategy({
           // represent the logged-in user.  In a typical application, you would want
           // to associate the Instagram account with a user record in your database,
           // and return that user instead.
+          Facebook.setAccessToken( accessToken );
           return done(null, profile);
         });
       })
@@ -212,10 +213,10 @@ app.get('/photos', ensureAuthenticated, function(req, res){
 
     else if(req.user.provider == 'facebook') {
       console.log("facebook!");
-      Facebook.get('/' + user.id + '/photos?type=uploaded', function(err, response) {
-      //response.paging.limit = 50;
+      Facebook.get('/' + user.id + '/photos?type=tagged', function(err, response) {
+      response.paging.limit = 10;
       var imageArr = response.data.map(function(item) {
-        item.width = 1050;
+        item.width = 5;
         var tempJSON = {};
         tempJSON.url = item.source;
         tempJSON.caption = item.name;
@@ -242,11 +243,11 @@ app.get('/auth/instagram',
     // function will not be called.
   });
 
-app.get('/auth/facebook', function(req, res) {
-
+app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['public_profile','user_photos', 'read_stream'], failureRedirect: '/login'}),
+    function(req, res) {
   // we don't have a code yet
   // so we'll redirect to the oauth dialog
-  if (!req.query.code) {
+  /*if (!req.query.code) {
     var authUrl = Facebook.getOauthUrl({
         "client_id":     FACEBOOK_APP_ID
       , "redirect_uri":  FACEBOOK_CALLBACK_URL
@@ -266,8 +267,7 @@ app.get('/auth/facebook', function(req, res) {
     , "code":           req.query.code
   }, function (err, facebookRes) {
     res.redirect('/photos');
-  });
-
+  });*/
 
 });
 
