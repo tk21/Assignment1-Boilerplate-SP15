@@ -1,6 +1,23 @@
-<link rel="stylesheet" type="text/css" href="css/instagramAccountLayout.css">
-{{#each photos}}
-  <img src="{{url}}" class="img-responsive" class="img hashtag-img">
-  
-  <div id="caption-div"> {{caption}} </div>
-{{/each}}
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/instagram-photos.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+    </head>
+
+    <!-- Sidebar Profile Account -->
+    <header id="header">
+        <a href="#" class="image avatar"><img src="images/avatar.jpg" alt="" /></a>
+        <h1><strong>I am Strata</strong>, a super simple<br />
+        responsive site template freebie<br />
+        crafted by <a href="http://html5up.net">HTML5 UP</a>.</h1>
+    </header>
+
+    {{#each photos}}
+      <img src="{{url}}" class="img-responsive" class="img hashtag-img">
+      
+      <div id="caption-div"> {{caption}} </div>
+    {{/each}}
+
+
+</html>
