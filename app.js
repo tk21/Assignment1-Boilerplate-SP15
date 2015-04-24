@@ -175,12 +175,16 @@ app.get('/login', function(req, res){
   res.render('instagramAccount', {user: req.user});
 });*/
 
-app.get('/photos', ensureAuthenticated, function(req, res){
+app.get('/instagramAccount', ensureAuthenticated, function(req, res){
+  //console.log(req.user);
   var query  = models.User.where({ name: req.user.username });
   query.findOne(function (err, user) {
+
     if (err) return handleError(err);
+
     if (req.user.provider == 'instagram') {
       console.log("instagram!");
+
       // doc may be null if no document matched
       Instagram.users.self({
         access_token: user.access_token,
@@ -191,25 +195,34 @@ app.get('/photos', ensureAuthenticated, function(req, res){
             tempJSON = {};
             tempJSON.url = item.images.low_resolution.url;
             tempJSON.caption = item.caption.text;
+            tempJSON.postedby = item.user.username;
             //insert json object into image array
             return tempJSON;
           });
-          res.render('instagramAccount', {photos: imageArr, name: user.name});
+          res.render('instagramAccount', {photos: imageArr, name: user.name, user: req.user});
+          
         }
       });
-    }
 
-      // Instagram.media.info({
-      //   complete: function(data) {
-      //     var captionArr = data.map(function(item) {
-      //       captionJSON = {};
-      //       captionJSON.caption = item.caption;
-      //       return captionJSON; 
-      //     });
-      //     res.render('photos2', {captions: captionArr});
-          
-      //   }
-      // });
+    /**  Instagram.users.self({
+        access_token: user.access_token,
+        complete: function(data) {
+          //Map will iterate through the returned data obj
+         // var acct = data.map(function(item) {
+            //create temporary json object
+            console.log(data.id.text);
+            tempJSON = {};
+           // tempJSON.url = item.images.low_resolution.url;
+            //tempJSON.prof_pic = data.profile_picture;
+            //console.log(tempJSON.prof_pic);
+            //insert json object into image array
+            return tempJSON;
+          //});
+          res.render('instagramAccount', {photos: imageArr, name: user.name, user: req.user});
+
+        }
+      }); **/
+    }
 
     else if(req.user.provider == 'facebook') {
       console.log("facebook!");
@@ -287,7 +300,7 @@ app.get('/facebookAccount', function(req, res) {
 app.get('/auth/instagram/callback', 
   passport.authenticate('instagram', { failureRedirect: '/login'}),
   function(req, res) {
-    res.redirect('/photos');
+    res.redirect('/instagramAccount');
   });
 
 app.get('/auth/facebook/callback', 

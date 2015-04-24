@@ -1,27 +1,34 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="css/instagram-photos.css">
         <link rel="stylesheet" type="text/css" href="css/style.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
     </head>
+    
 
     <!-- Sidebar Profile Account -->
-    <header id="header">
-        <a href="#" class="image avatar"><img src="images/avatar.jpg" alt="" /></a>
-        <p>ID: {{user.id}}</p>
-        <p>Username: {{user.username}}</p>
-        <p>Name:{{user.displayName}}</p>
-        
-    </header>
+    <div id="header">   
+        <h1><i class="fa fa-instagram fa-6"></i></h1>
+        <h2>{{user.username}}</h2>
+    </div>
 
     <!-- Main section, displaying feed -->
     <div id="main">
+
         {{#each photos}}
-          <img src="{{url}}" class="img-responsive" class="img hashtag-img">
-          
-          <div id="caption-div"> {{caption}} </div>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">{{postedby}}</h3>
+            </div>
+            <div class="panel-body">
+                <img src="{{url}}" class="img-responsive" class="img hashtag-img">
+                <div id="caption-div"> {{caption}} </div>
+            </div>
+        </div>
         {{/each}}
-    </div<
+
+    </div>
 
 
-</html>
+</html> 
